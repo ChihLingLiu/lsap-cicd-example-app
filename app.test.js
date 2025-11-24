@@ -26,4 +26,21 @@ describe("API Endpoints", () => {
     expect(res.statusCode).toEqual(200);
     expect(res.text).toContain("Welcome to the CI/CD Workshop!");
   });
+
+  test('should return the current time in ISO format for /time', async () => {
+    const res = await request(app).get('/time');
+
+    // 1. HTTP 狀態碼是 200
+    expect(res.statusCode).toBe(200);
+
+    // 2. 回傳 body 中應該要有 time 欄位
+    expect(res.body).toHaveProperty('time');
+
+    const time = res.body.time;
+
+    // 3. 檢查是不是合法的 ISO 字串
+    const iso = new Date(time).toISOString();
+    expect(iso).toBe(time);
+  });
+
 });
