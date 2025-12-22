@@ -16,16 +16,18 @@ pipeline {
 
   post {
   failure {
-    withCredentials([string(credentialsId: 'discord-webhook', variable: 'DISCORD_WEBHOOK')]) {
-      sh '''#!/bin/bash
-        set +e
-        msg="❌ Jenkins build FAILED: ${JOB_NAME} #${BUILD_NUMBER}\\n${BUILD_URL}"
-        payload=$(printf '{"content":"%s"}' "$msg")
-        curl -sS -X POST \
-          -H "Content-Type: application/json" \
-          --data "$payload" \
-          "$DISCORD_WEBHOOK" || true
-      '''
+    script {
+      def repoUrl = sh(returnStdout: true, script: "git config --get remote.origin.url").trim()
+      def msg = "❌ CI FAILED | Name: 劉志翎 | ID: b13705009 | Job: ${env.JOB_NAME} | Build: #${env.BUILD_NUMBER} | Repo: ${repoUrl} | Branch: ${env.BRANCH_NAME} | Status: FAILURE | ${env.BUILD_URL}"
+
+      withCredentials([string(credentialsId: 'discord-webhook', variable: 'DISCORD_WEBHOOK')]) {
+        sh """
+          curl -sS -X POST \\
+            -H "Content-Type: application/json" \\
+            -d "{\\"content\\":\\"${msg}\\"}" \\
+            "\$DISCORD_WEBHOOK"
+        """
+      }
     }
   }
 }
