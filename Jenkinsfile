@@ -18,6 +18,12 @@ pipeline {
             }
         }
 
+                stage('Static Analysis') {
+            steps {
+                sh 'npm run lint'
+            }
+        }
+
         stage('Run tests') {
             steps {
                 sh 'npm test'
