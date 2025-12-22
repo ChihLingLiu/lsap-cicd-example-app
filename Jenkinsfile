@@ -15,13 +15,19 @@ pipeline {
   }
 
   post {
-    failure {
-      sh '''
+  failure {
+    withCredentials([string(credentialsId: 'discord-webhook', variable: 'DISCORD_WEBHOOK')]) {
+      sh '''#!/bin/bash
+        set +e
+        msg="❌ Jenkins build FAILED: ${JOB_NAME} #${BUILD_NUMBER}\\n${BUILD_URL}"
+        payload=$(printf '{"content":"%s"}' "$msg")
         curl -sS -X POST \
           -H "Content-Type: application/json" \
-          -d "{\\"content\\":\\"❌ Jenkins build FAILED: ${JOB_NAME} #${BUILD_NUMBER}\\"}" \
-          "https://discord.com/api/webhooks/1452556076590563391/c5IyvZ6g1-gA5nehRZyJ7z8dxbJ92KxKzWXR78-OzZFUrwHiUVRRxFaiosVElZ56HbG9"
+          --data "$payload" \
+          "$DISCORD_WEBHOOK" || true
       '''
     }
   }
+}
+
 }
