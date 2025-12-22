@@ -26,7 +26,7 @@ pipeline {
 
         stage('Run tests') {
             steps {
-                sh 'exit 1'
+                sh 'npm test'
             }
         }
     }
