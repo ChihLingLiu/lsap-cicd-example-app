@@ -4,14 +4,36 @@ pipeline {
   tools { nodejs 'node18' }
 
   environment {
-    DISCORD_WEBHOOK_URL = credentials('discord-webhook')
+    DISCORD_WEBHOOK_URL = 'ling922/cicd-lab-starter-app'
   }
 
   stages {
     stage('Checkout') { steps { checkout scm } }
     stage('Install dependencies') { steps { sh 'npm install' } }
     stage('Static Analysis') { steps { sh 'npm run lint' } }
-    stage('Run tests') { steps { sh 'exit 1' } }
+    stage('Run tests') { steps { sh 'npm test' } }
+    stage('Build & Push (dev)') {
+      when {
+        branch 'dev'
+      }
+      steps {
+        script {
+          def tag = "dev-${env.BUILD_NUMBER}"
+          def image = "${env.DOCKERHUB_REPO}:${tag}"
+
+          withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                            usernameVariable: 'DOCKER_USER',
+                                            passwordVariable: 'DOCKER_PASS')]) {
+            sh """
+              echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+              docker build -t ${image} .
+              docker push ${image}
+              docker logout
+            """
+          }
+        }
+      }
+    }
   }
 
   post {
