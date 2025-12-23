@@ -35,21 +35,43 @@ pipeline {
         }
       }
     }
-    stage('Deploy & Verify (dev)') {
+stage('Deploy & Verify (dev)') {
   when { branch 'dev' }
   steps {
     script {
       def tag = "dev-${env.BUILD_NUMBER}"
       def image = "${env.DOCKERHUB_REPO}:${tag}"
 
-      sh """
-        docker pull ${image} || true
-        docker rm -f dev-app || true
-        docker run -d --name dev-app -p 8081:3000 ${image}
-        curl -f http://localhost:8081/health
-      """
+      withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                        usernameVariable: 'DOCKER_USER',
+                                        passwordVariable: 'DOCKER_PASS')]) {
+        sh """
+          echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+
+          docker pull ${image}
+          docker rm -f dev-app || true
+          docker run -d --name dev-app -p 8081:3000 ${image}
+
+          # wait + retry health (最多等 30 秒)
+          for i in \$(seq 1 30); do
+            if curl -fsS http://localhost:8081/health > /dev/null; then
+              echo "health ok"
+              docker logout || true
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "health check failed, printing logs..."
+          docker ps -a --filter "name=dev-app" || true
+          docker logs --tail 200 dev-app || true
+          docker logout || true
+          exit 1
+        """
+      }
     }
   }
+}
 }
   }
 
