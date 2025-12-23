@@ -5,6 +5,7 @@ pipeline {
 
   environment {
     DISCORD_WEBHOOK_URL = 'ling922/cicd-lab-starter-app'
+    DOCKERHUB_REPO = 'ling922/myapp'
   }
 
   stages {
@@ -34,6 +35,22 @@ pipeline {
         }
       }
     }
+    stage('Deploy & Verify (dev)') {
+  when { branch 'dev' }
+  steps {
+    script {
+      def tag = "dev-${env.BUILD_NUMBER}"
+      def image = "${env.DOCKERHUB_REPO}:${tag}"
+
+      sh """
+        docker pull ${image} || true
+        docker rm -f dev-app || true
+        docker run -d --name dev-app -p 8081:3000 ${image}
+        curl -f http://localhost:8081/health
+      """
+    }
+  }
+}
   }
 
   post {
